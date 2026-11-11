@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FaceMap Studio</title>
+  <meta name="description" content="Scan your face and get a personalised makeup and brow map that follows your head.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <div>
+        <h1>FaceMap Studio</h1>
+        <p>Face-shape analysis &amp; live makeup mapping &middot; C++ / WebAssembly engine</p>
+      </div>
+    </div>
+    <div class="chips" id="status-chips">
+      <span class="chip" id="chip-engine" title="Analysis engine">engine: loading</span>
+      <span class="chip" id="chip-fps">- fps</span>
+      <span class="chip" id="chip-pose">pose -</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="stage-col" aria-label="Camera">
+      <div class="stage" id="stage">
+        <video id="video" playsinline muted></video>
+        <canvas id="backdrop" aria-hidden="true"></canvas>
+        <canvas id="overlay" aria-label="Makeup map overlay"></canvas>
+
+        <div class="stage-ctrls" id="stage-ctrls" hidden>
+          <button class="icon-btn" id="btn-zoom-out" type="button" aria-label="Zoom out">&minus;</button>
+          <span id="zoom-read">100%</span>
+          <button class="icon-btn" id="btn-zoom-in" type="button" aria-label="Zoom in">+</button>
+          <button class="icon-btn wide" id="btn-full" type="button">Full screen</button>
+          <button class="icon-btn wide" id="btn-drawer" type="button" hidden>Analysis</button>
+        </div>
+
+        <div class="welcome" id="welcome">
+          <h2>Find your face shape. Map your makeup.</h2>
+          <p>Start the camera for a live scan, or try the demo face to see how the map follows a turning head.</p>
+          <div class="row">
+            <button class="btn primary" id="btn-camera">Start camera</button>
+            <button class="btn" id="btn-demo">Try demo face</button>
+          </div>
+          <p class="fine">Your video never leaves your device &mdash; all analysis runs in your browser.</p>
+        </div>
+
+        <div class="hud" id="hud" hidden>
+          <div class="hud-msg" id="hud-msg" role="status" aria-live="polite"></div>
+          <div class="progress" id="progress" hidden><span id="progress-bar"></span></div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="row">
+          <button class="btn primary" id="btn-rescan" disabled>Rescan</button>
+          <button class="btn" id="btn-snap" disabled>Save snapshot</button>
+          <button class="btn" id="btn-stop" disabled>Stop</button>
+          <label class="check"><input type="checkbox" id="opt-mirror" checked> Mirror view</label>
+        </div>
+        <div class="ltabs" role="tablist" aria-label="Overlay controls">
+          <button role="tab" aria-selected="true" data-ltab="brows" type="button">Brows</button>
+          <button role="tab" aria-selected="false" data-ltab="face" type="button">Face</button>
+          <span class="spacer"></span>
+          <button class="btn small" id="btn-all-on" type="button">Show all</button>
+          <button class="btn small" id="btn-all-off" type="button">Hide all</button>
+        </div>
+        <div class="layers" id="layers-brows" data-group="brows" role="group" aria-label="Brow overlays"></div>
+        <div class="row sliders" data-group="brows">
+          <label>Brow look
+            <select id="opt-brow-style"><option value="mapped">Mapped lines</option><option value="smooth">Smooth outline</option></select>
+          </label>
+        </div>
+        <div class="row sliders" data-group="brows">
+          <label class="check"><input type="checkbox" id="opt-pixel" checked> Match my real brows (colour scan)</label>
+          <span class="muted small" id="pixel-stat"></span>
+        </div>
+        <div class="row sliders fit" data-group="brows">
+          <span class="fit-title">Fit to my brows</span>
+          <label>Move up/down <input type="range" id="fit-y" min="-0.12" max="0.12" step="0.005" value="0"></label>
+          <label>Top line <input type="range" id="fit-top" min="-0.12" max="0.12" step="0.005" value="0"></label>
+          <label>Bottom line <input type="range" id="fit-bot" min="-0.12" max="0.12" step="0.005" value="0"></label>
+          <label>Tail length <input type="range" id="fit-tail" min="-0.15" max="0.15" step="0.005" value="0"></label>
+          <button class="btn small" id="fit-reset" type="button">Reset fit</button>
+        </div>
+        <div class="layers" id="layers-face" data-group="face" role="group" aria-label="Face overlays" hidden></div>
+        <div class="row sliders">
+          <label>Zoom <input type="range" id="opt-zoom" min="1" max="4" step="0.05" value="1"></label>
+          <label class="check"><input type="checkbox" id="opt-follow" checked> Follow face</label>
+          <button class="btn small" id="btn-fit" type="button">Reset view</button>
+        </div>
+        <div class="row sliders">
+          <label>Overlay strength <input type="range" id="opt-opacity" min="0.2" max="1" step="0.05" value="0.85"></label>
+          <span id="demo-controls" hidden>
+            <label class="check"><input type="checkbox" id="demo-sweep" checked> Auto head-turn</label>
+            <label>Yaw <input type="range" id="demo-yaw" min="-35" max="35" step="1" value="0"></label>
+            <label>Face
+              <select id="demo-variant">
+                <option>oval</option><option>round</option><option>square</option>
+                <option>heart</option><option>oblong</option><option>diamond</option>
+              </select>
+            </label>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel" aria-label="Results">
+      <nav class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-tab="overview">Overview</button>
+        <button role="tab" aria-selected="false" data-tab="eyes">Eyes</button>
+        <button role="tab" aria-selected="false" data-tab="brows">Brows</button>
+        <button role="tab" aria-selected="false" data-tab="makeup">Makeup map</button>
+        <button role="tab" aria-selected="false" data-tab="debug">Details</button>
+      </nav>
+
+      <div class="empty" id="empty">
+        <p>Results appear here once a face is detected.</p>
+      </div>
+
+      <div id="tab-overview" class="tabpane" hidden>
+        <div class="hero">
+          <div class="eyebrow">Your face shape</div>
+          <div class="shape" id="o-shape">-</div>
+          <div class="conf"><span id="o-conf">-</span> <em id="o-state"></em></div>
+          <p id="o-blurb" class="muted"></p>
+        </div>
+        <h3>Shape likelihood</h3>
+        <div id="o-rank" class="bars"></div>
+        <h3>Bone structure</h3>
+        <dl class="kv" id="o-bone"></dl>
+        <h3>Facial symmetry</h3>
+        <div class="gauge"><span id="o-sym-bar"></span></div>
+        <p class="muted" id="o-sym"></p>
+      </div>
+
+      <div id="tab-eyes" class="tabpane" hidden>
+        <dl class="kv" id="e-attrs"></dl>
+        <h3>Eye makeup for you</h3>
+        <ul class="tips" id="e-tips"></ul>
+        <p class="muted small">Violet shows lid colour, outer-V and crease placement; the white triangle is a wing guide.</p>
+      </div>
+
+      <div id="tab-brows" class="tabpane" hidden>
+        <div class="hero small">
+          <div class="eyebrow">Recommended brow</div>
+          <div class="shape" id="b-style">-</div>
+          <p id="b-why" class="muted"></p>
+        </div>
+        <details class="steps">
+          <summary>How to read the map (drawing order)</summary>
+          <ol>
+            <li><b>1st</b> Midline, from forehead to nose tip.</li>
+            <li><b>2nd</b> Level line across both brows at the top of the arch.</li>
+            <li><b>3rd</b> Nostril edge through the outer eye corner: where each tail ends.</li>
+            <li><b>4th</b> Inner V: the gap between the brow heads - keep it clear.</li>
+            <li><b>5th</b> Start lines: each brow begins at the bridge of the nose, just inside the inner eye corner.</li>
+            <li><b>6th</b> Arch lines: the peak sits on this vertical (nostril &rarr; pupil, dashed).</li>
+            <li><b>7th</b> Tail lines: the tail ends level with the bottom of the brow head.</li>
+            <li><b>8th / 9th</b> Upper and lower brow lines: the shape to trace.</li>
+            <li><b>Bottom line</b> (dashed): one level line under both brows - the underside of each brow should sit on it, so the bottoms match.</li>
+          </ol>
+          <p class="muted small">Tick <em>Diamond frame</em> under the video for the extra forehead-apex lines.</p>
+        </details>
+        <h3>Your natural brows</h3><ul class="tips" id="b-asym"></ul>
+        <p class="muted small">The map is mirrored left-to-right, so both brows get an identical shape and sit level with your eye line. Turn on the lines you want under <em>Brows</em> beneath the video; nothing is shown until you do.</p>
+      </div>
+
+      <div id="tab-makeup" class="tabpane" hidden>
+        <div id="m-sections"></div>
+      </div>
+
+      <div id="tab-debug" class="tabpane" hidden>
+        <h3>Measurements</h3>
+        <dl class="kv mono" id="d-measure"></dl>
+        <h3>Calibration</h3>
+        <p class="muted small">Face-shape thresholds are heuristics on MediaPipe's mesh. If shapes look consistently off for your camera, nudge these offsets.</p>
+        <div class="cal">
+          <label>Length <input type="range" id="cal-len" min="-0.3" max="0.3" step="0.01" value="0"><output id="cal-len-o">0.00</output></label>
+          <label>Forehead <input type="range" id="cal-fore" min="-0.15" max="0.15" step="0.005" value="0"><output id="cal-fore-o">0.00</output></label>
+          <label>Jaw <input type="range" id="cal-jaw" min="-0.15" max="0.15" step="0.005" value="0"><output id="cal-jaw-o">0.00</output></label>
+          <button class="btn small" id="cal-reset">Reset</button>
+        </div>
+      </div>
+
+      <p class="disclaimer">Suggestions are cosmetic guidance from landmark geometry, not medical or professional advice. Lighting, camera angle and expression affect accuracy.</p>
+    </aside>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

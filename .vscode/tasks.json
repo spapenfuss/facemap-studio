@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Serve (http://localhost:5173)", "type": "shell", "command": "node server.mjs",
+      "isBackground": true, "problemMatcher": [], "group": "none",
+      "presentation": { "reveal": "always", "panel": "dedicated" } },
+    { "label": "Build C++ -> WASM", "type": "shell", "command": "bash build.sh",
+      "group": "build", "problemMatcher": ["$gcc"] },
+    { "label": "Run engine tests", "type": "shell", "command": "node --test tests/engine.test.mjs",
+      "group": "test", "problemMatcher": [] }
+  ]
+}

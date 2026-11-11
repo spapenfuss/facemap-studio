@@ -1,0 +1,14 @@
+{
+  "name": "facemap-studio",
+  "version": "1.0.0",
+  "description": "Face-shape analysis and live makeup/brow mapping. C++ engine compiled to WebAssembly, MediaPipe landmarks, vanilla JS UI.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.mjs",
+    "build:wasm": "bash build.sh",
+    "test": "node --test tests/engine.test.mjs",
+    "vendor": "node tools/vendor.mjs"
+  },
+  "license": "MIT"
+}

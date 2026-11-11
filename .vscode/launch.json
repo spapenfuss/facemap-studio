@@ -1,0 +1,9 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    { "name": "Open in Chrome (start the Serve task first)", "type": "chrome", "request": "launch",
+      "url": "http://localhost:5173", "webRoot": "${workspaceFolder}/web" },
+    { "name": "Open demo mode in Chrome", "type": "chrome", "request": "launch",
+      "url": "http://localhost:5173/?demo", "webRoot": "${workspaceFolder}/web" }
+  ]
+}
