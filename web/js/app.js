@@ -2,7 +2,7 @@
 import { loadEngine, flattenLandmarks } from './engine.js';
 import { drawOverlay, LAYERS } from './overlay.js';
 import { store } from './store.js';
-import { BROW_REC, explainShape, shapeDiagramSVG, lipAnalysis, MAKEUP } from './profiles.js';
+import { BROW_REC, HAIR_REC, explainShape, shapeDiagramSVG, lipAnalysis, MAKEUP } from './profiles.js';
 import { initColor } from './colorui.js';
 import { makeDemoFace, OVAL_R, OVAL_L, LIPS_OUTER } from './demo.js';
 
@@ -461,6 +461,13 @@ function renderReport(r) {
   // eyebrow recommendation (advice only; nothing is drawn on the face)
   const br = BROW_REC[f.shape];
   if (br) { $('f-brow-name').textContent = br.name; $('f-brow-why').textContent = br.why; $('f-brow-avoid').textContent = br.avoid; }
+
+  const hr = HAIR_REC[f.shape];
+  if (hr) {
+    $('f-hair-intro').textContent = hr.intro; $('f-hair-part').textContent = hr.part; $('f-hair-avoid').textContent = hr.avoid;
+    const ul = $('f-hair'); ul.replaceChildren();
+    for (const [name, why] of hr.cuts) { const li = el('li'); li.append(el('b', null, name), el('span', null, why)); ul.append(li); }
+  }
 
   setKV($('o-bone'), [['Cheekbones', f.bone.cheekbones], ['Jaw', f.bone.jaw], ['Chin', f.bone.chin], ['Forehead', f.bone.forehead]]);
   $('o-sym-bar').style.width = `${r.symmetry.score}%`;

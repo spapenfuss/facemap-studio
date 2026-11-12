@@ -14,20 +14,15 @@
     <div class="brand">
       <span class="logo" aria-hidden="true"></span>
       <div>
-        <h1>OnFleek</h1>
+        <h1>On<span>Fleek</span></h1>
         <p>Your personal beauty consultation</p>
       </div>
     </div>
     <nav class="journey" role="tablist" aria-label="Sections">
-      <button type="button" role="tab" data-view="face" aria-selected="false"><i>1</i><span><b>Face Analysis</b><small>Face shape &amp; brows</small></span></button>
+      <button type="button" role="tab" data-view="face" aria-selected="false"><i>1</i><span><b>Face Analysis</b><small>Shape, brows &amp; hair</small></span></button>
       <button type="button" role="tab" data-view="color" aria-selected="true"><i>2</i><span><b>Color Analysis</b><small>Your season</small></span></button>
       <button type="button" role="tab" data-view="makeup" aria-selected="false"><i>3</i><span><b>Makeup</b><small>Placement &amp; colors</small></span></button>
     </nav>
-    <div class="chips" id="status-chips">
-      <span class="chip" id="chip-engine" title="Analysis engine">engine: loading</span>
-      <span class="chip" id="chip-fps">- fps</span>
-      <span class="chip" id="chip-pose" hidden>pose -</span>
-    </div>
   </header>
 
   <section id="view-color" class="cview" aria-label="Personal color analysis">
@@ -156,24 +151,30 @@
           <button class="btn primary" id="btn-rescan" disabled>Rescan</button>
           <button class="btn" id="btn-snap" disabled>Save snapshot</button>
           <button class="btn" id="btn-stop" disabled>Stop camera</button>
-          <label class="check"><input type="checkbox" id="opt-mirror" checked> Mirror view</label>
         </div>
-        <div class="row sliders">
-          <label>Zoom <input type="range" id="opt-zoom" min="1" max="4" step="0.05" value="1"></label>
-          <label class="check"><input type="checkbox" id="opt-follow" checked> Follow face</label>
-          <button class="btn small" id="btn-fit" type="button">Reset view</button>
-          <label id="opacity-wrap">Overlay strength <input type="range" id="opt-opacity" min="0.2" max="1" step="0.05" value="0.85"></label>
-        </div>
-        <div class="row sliders" id="demo-controls" hidden>
-          <label class="check"><input type="checkbox" id="demo-sweep" checked> Auto head-turn</label>
-          <label>Yaw <input type="range" id="demo-yaw" min="-35" max="35" step="1" value="0"></label>
-          <label>Face
-            <select id="demo-variant">
-              <option>oval</option><option>round</option><option>square</option>
-              <option>heart</option><option>oblong</option><option>diamond</option>
-            </select>
-          </label>
-        </div>
+        <details class="opts">
+          <summary>View options</summary>
+          <div class="row sliders">
+            <label class="check"><input type="checkbox" id="opt-mirror" checked> Mirror view</label>
+            <label>Zoom <input type="range" id="opt-zoom" min="1" max="4" step="0.05" value="1"></label>
+            <label class="check"><input type="checkbox" id="opt-follow" checked> Follow face</label>
+            <button class="btn small" id="btn-fit" type="button">Reset view</button>
+            <label id="opacity-wrap">Overlay strength <input type="range" id="opt-opacity" min="0.2" max="1" step="0.05" value="0.85"></label>
+          </div>
+        </details>
+        <details class="opts" id="demo-controls" hidden>
+          <summary>Demo face options</summary>
+          <div class="row sliders">
+            <label class="check"><input type="checkbox" id="demo-sweep" checked> Auto head-turn</label>
+            <label>Yaw <input type="range" id="demo-yaw" min="-35" max="35" step="1" value="0"></label>
+            <label>Face
+              <select id="demo-variant">
+                <option>oval</option><option>round</option><option>square</option>
+                <option>heart</option><option>oblong</option><option>diamond</option>
+              </select>
+            </label>
+          </div>
+        </details>
       </div>
     </section>
 
@@ -181,13 +182,13 @@
       <!-- ============ FACE ANALYSIS ============ -->
       <div id="pane-face">
         <header class="sec-head"><div class="eyebrow">Step 1 of 3</div><h2>Face Analysis</h2>
-          <p>We measure the proportions of your face to find your face shape, then suggest the eyebrow shape that suits it best.</p></header>
+          <p>We measure your face proportions to find your face shape, then suggest the hair cuts and eyebrow shape that suit it.</p></header>
         <div class="empty" id="empty">
           <h3>What to do</h3>
           <ol class="tips num">
             <li><b>Start your camera</b> (left). Allow access when your browser asks.</li>
             <li><b>Look straight ahead</b> and hold still for a few seconds while it scans.</li>
-            <li><b>Read your results</b> here: face shape, why, and your eyebrow recommendation.</li>
+            <li><b>Read your results</b> here: face shape, hair cuts, eyebrow shape, and why.</li>
           </ol>
           <p class="muted small">No camera? Use the demo face to see how it works.</p>
         </div>
@@ -199,13 +200,15 @@
             <p id="o-blurb" class="muted"></p>
           </div>
 
-          <section class="card">
-            <h3>Why this shape?</h3>
-            <p class="muted small">Face shape comes from several measurements together, never one alone. Here is what we measured on you.</p>
-            <div class="diagram" id="f-diagram"></div>
-            <ul class="why" id="f-why"></ul>
-            <h4>Other shapes we considered</h4>
-            <div id="o-rank" class="bars"></div>
+          <section class="card hair-card">
+            <h3>Hair that suits your face shape</h3>
+            <p class="muted small" id="f-hair-intro"></p>
+            <ul class="cuts" id="f-hair"></ul>
+            <dl class="rec">
+              <dt>Parting</dt><dd id="f-hair-part"></dd>
+              <dt>What to avoid or consider</dt><dd id="f-hair-avoid"></dd>
+            </dl>
+            <p class="muted small">Hair texture, thickness and your hairline matter too. Use these as ideas to show your stylist.</p>
           </section>
 
           <section class="card brow-card">
@@ -216,6 +219,15 @@
               <dt>What to avoid or consider</dt><dd id="f-brow-avoid"></dd>
             </dl>
             <p class="muted small">This is advice, not a drawing: shape your own brows gently, following your natural hair growth, and see a brow professional if unsure.</p>
+          </section>
+
+          <section class="card">
+            <h3>Why this shape?</h3>
+            <p class="muted small">Face shape comes from several measurements together, never one alone. Here is what we measured on you.</p>
+            <div class="diagram" id="f-diagram"></div>
+            <ul class="why" id="f-why"></ul>
+            <h4>Other shapes we considered</h4>
+            <div id="o-rank" class="bars"></div>
           </section>
 
           <details class="card more">
@@ -266,7 +278,13 @@
     </aside>
   </main>
 
-  <footer class="foot">OnFleek &middot; analysis runs in your browser with a C++ / WebAssembly engine &middot; your images never leave your device</footer>
+  <footer class="foot"><span>OnFleek &middot; your images never leave your device</span>
+    <div class="chips" id="status-chips">
+      <span class="chip" id="chip-engine" title="Analysis engine">engine: loading</span>
+      <span class="chip" id="chip-fps">- fps</span>
+      <span class="chip" id="chip-pose" hidden>pose -</span>
+    </div>
+</footer>
 
   <script type="module" src="js/app.js"></script>
 </body>

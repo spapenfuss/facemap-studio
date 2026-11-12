@@ -97,7 +97,7 @@ function liveUpdate(now) {
   const HH = H + (S.pad || 0);
   if (photo.width !== W || photo.height !== HH) { photo.width = drape.width = W; photo.height = drape.height = HH; fitStage(W, HH); }
   S.W = W; S.H = HH; S.Hp = H;
-  if (S.pad) { pctx.fillStyle = '#1a1411'; pctx.fillRect(0, H, W, HH - H); }
+  if (S.pad) { pctx.fillStyle = '#1d2231'; pctx.fillRect(0, H, W, HH - H); }
   pctx.save(); pctx.setTransform(-1, 0, 0, 1, W, 0); pctx.drawImage(src, 0, 0, W, H); pctx.restore();
   const L = FM.landmarks(); S.faceOk = !!L && FM.faceFresh();
   if (L && S.faceOk) {
@@ -341,7 +341,7 @@ function setPhoto(canvas, lm) {
   const chinY = lm[152 * 3 + 1] * S.Hp, topY = lm[10 * 3 + 1] * S.Hp, pad = Math.max(0, Math.ceil(chinY + 0.65 * (chinY - topY) - S.Hp));
   S.H = S.Hp + pad; S.pad = 0; fitStage(S.W, S.H);
   photo.width = drape.width = S.W; photo.height = drape.height = S.H;
-  pctx.fillStyle = '#1a1411'; pctx.fillRect(0, 0, S.W, S.H);
+  pctx.fillStyle = '#1d2231'; pctx.fillRect(0, 0, S.W, S.H);
   pctx.drawImage(canvas, 0, 0);
   S.still = canvas;
   const meas = measureFace(pctx, lm, S.W, S.Hp);

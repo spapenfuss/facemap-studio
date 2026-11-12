@@ -35,6 +35,78 @@ export const BROW_REC = {
   },
 };
 
+
+// -------------------------------------------------------------- hair advice ----
+// Starting ideas for a stylist. Hair texture, thickness and hairline change what works, so these are not rules.
+export const HAIR_REC = {
+  Oval: {
+    intro: 'Your proportions are balanced, so you can wear almost any length. The aim is to keep that balance rather than hide it.',
+    cuts: [
+      ['Long layers', 'Adds movement without changing your balanced shape.'],
+      ['Blunt lob (shoulder length)', 'A clean line that frames the face evenly.'],
+      ['Soft curtain or side-swept bangs', 'Frames the face and suits the natural curve of your forehead.'],
+      ['Textured pixie', 'Shows off your even proportions if you like short hair.'],
+    ],
+    part: 'A center or side part both work. Try each and keep the one that feels most natural.',
+    avoid: 'Heavy, flat styles that hide your face, or very long hair cut all one length, which can stretch an oval face.',
+  },
+  Round: {
+    intro: 'Your face is about as wide as it is long. Cuts that add height and length help create a slimmer, more structured outline.',
+    cuts: [
+      ['Long layers starting below the chin', 'Draws the eye downward and adds length.'],
+      ['Angled lob with longer front pieces', 'The diagonal lines make the face look longer.'],
+      ['Side-swept or curtain bangs', 'Breaks up the width of the forehead and cheeks.'],
+      ['Volume at the crown', 'Adds height, which balances the width.'],
+    ],
+    part: 'A deep side part or an off-center part adds asymmetry and length. A center part can emphasize roundness.',
+    avoid: 'Chin-length blunt bobs, which end at the widest part of your face, and full straight-across bangs.',
+  },
+  Square: {
+    intro: 'Your jaw and forehead are strong and fairly equal in width. Soft lines and texture balance the angles.',
+    cuts: [
+      ['Soft layers with waves', 'Gentle movement softens a strong jawline.'],
+      ['Long layers with side-swept bangs', 'The diagonal fringe breaks up a straight hairline.'],
+      ['Textured shoulder-length bob', 'Choose one that falls just past the jaw rather than ending at it.'],
+      ['Curtain bangs', 'Soft framing pieces round off the corners of the forehead.'],
+    ],
+    part: 'A deep side part softens the angles better than a center part.',
+    avoid: 'Sharp blunt cuts that end exactly at the jaw, heavy straight-across bangs, and very severe slicked-back styles.',
+  },
+  Heart: {
+    intro: 'Your forehead is your widest part and your chin is narrower. Adding fullness lower down balances the top of the face.',
+    cuts: [
+      ['Chin-length bob with volume at the jaw', 'Adds width at the bottom of the face to balance the forehead.'],
+      ['Layers that begin at the chin', 'Brings fullness to the lower half.'],
+      ['Side-swept or curtain bangs', 'Softens a wider forehead.'],
+      ['Long layers with waves at the ends', 'Movement at the bottom balances the top.'],
+    ],
+    part: 'A side part helps shorten a wide forehead. A deep center part can make it look wider.',
+    avoid: 'Extra volume at the crown or temples, and very short cuts that leave the sides flat against the head.',
+  },
+  Oblong: {
+    intro: 'Your face is noticeably longer than it is wide. Width and volume at the sides help balance the length.',
+    cuts: [
+      ['Chin-length or collarbone bob', 'Adds width around the cheeks and jaw.'],
+      ['Layers with waves or curls', 'Side volume makes the face look wider.'],
+      ['Full or curtain bangs', 'Visually shortens the forehead and the length of the face.'],
+      ['Soft waves at shoulder length', 'Keeps the hair full at the sides.'],
+    ],
+    part: 'A side part adds width. A very sharp center part can emphasize length.',
+    avoid: 'Very long, straight, flat hair, and a lot of height on top of the head.',
+  },
+  Diamond: {
+    intro: 'Your cheekbones are your widest part, with a narrower forehead and chin. Add softness at the forehead and jaw.',
+    cuts: [
+      ['Chin-length bob with fullness at the jaw', 'Balances the narrower chin with the cheekbones.'],
+      ['Side-swept bangs', 'Adds width across the forehead.'],
+      ['Layers around the chin', 'Volume below the cheekbones evens out the shape.'],
+      ['Textured pixie with a side fringe', 'Works well if you want short hair and keeps the focus on your eyes.'],
+    ],
+    part: 'A side part gives the forehead more width than a center part.',
+    avoid: 'Volume right at cheekbone level, and styles that pull all the hair back and away from the face.',
+  },
+};
+
 // ------------------------------------------------------- face shape explained ----
 // Same prototype values the C++ engine uses (see engine/engine.cpp PROTO).
 export const PROTO = {
@@ -101,10 +173,10 @@ export function shapeDiagramSVG(m) {
     <circle cx="${f(cx - w / 2)}" cy="${f(y)}" r="3" fill="${col}"/><circle cx="${f(cx + w / 2)}" cy="${f(y)}" r="3" fill="${col}"/>
     <text x="${f(cx + w / 2 + 8)}" y="${f(y + 4)}" font-size="11" fill="${col}">${label}</text>`;
   return `<svg viewBox="0 0 250 ${Math.ceil(bot + 16)}" role="img" aria-label="Diagram of your face proportions" class="shape-svg">
-    <path d="${outline}" fill="rgba(200,160,140,.16)" stroke="currentColor" stroke-width="1.6"/>
-    <line x1="${cx}" y1="${f(top - 4)}" x2="${cx}" y2="${f(bot + 4)}" stroke="#9a8d86" stroke-dasharray="3 4"/>
-    ${h(yF, fore, 'Forehead', '#b9776f')}${h(yC, cheek, 'Cheekbones', '#6d8f7d')}${h(yJ, jaw, 'Jaw', '#7a79b3')}
-    <text x="${cx + 4}" y="${f(bot + 14)}" font-size="11" fill="#9a8d86">Length</text></svg>`;
+    <path d="${outline}" fill="rgba(242,181,196,.28)" stroke="#6b7080" stroke-width="1.6"/>
+    <line x1="${cx}" y1="${f(top - 4)}" x2="${cx}" y2="${f(bot + 4)}" stroke="#a3a8b8" stroke-dasharray="3 4"/>
+    ${h(yF, fore, 'Forehead', '#c2395d')}${h(yC, cheek, 'Cheekbones', '#4a6fa5')}${h(yJ, jaw, 'Jaw', '#4f9b7a')}
+    <text x="${cx + 4}" y="${f(bot + 14)}" font-size="11" fill="#6b7080">Length</text></svg>`;
 }
 
 // -------------------------------------------------------------------- lips ----
