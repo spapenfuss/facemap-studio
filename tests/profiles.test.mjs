@@ -53,3 +53,13 @@ test('season explanation is plain language and personal', () => {
   const e = explainSeason(s, { T: -0.4, D: 0.1, C: -0.8 });
   assert.match(e.summary, /Soft Summer/); assert.match(e.points[0], /cool/); assert.match(e.points[2], /soft and muted/);
 });
+
+test('hair recommendations exist for every shape', async () => {
+  const { HAIR_REC } = await import('../web/js/profiles.js');
+  for (const s of ['Oval','Round','Square','Heart','Oblong','Diamond']) {
+    const h = HAIR_REC[s];
+    assert.ok(h && h.intro && h.part && h.avoid, s);
+    assert.equal(h.cuts.length, 4, s);
+    for (const c of h.cuts) assert.equal(c.length, 2);
+  }
+});
