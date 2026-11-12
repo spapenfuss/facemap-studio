@@ -3,8 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FaceMap Studio</title>
-  <meta name="description" content="Scan your face and get a personalised makeup and brow map that follows your head.">
+  <title>OnFleek - Face, Color &amp; Makeup</title>
+  <meta name="description" content="OnFleek is a personal beauty consultation in your browser: find your face shape, your color season and the makeup that suits you.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -12,40 +14,131 @@
     <div class="brand">
       <span class="logo" aria-hidden="true"></span>
       <div>
-        <h1>FaceMap Studio</h1>
-        <p>Face-shape analysis &amp; live makeup mapping &middot; C++ / WebAssembly engine</p>
+        <h1>OnFleek</h1>
+        <p>Your personal beauty consultation</p>
       </div>
     </div>
+    <nav class="journey" role="tablist" aria-label="Sections">
+      <button type="button" role="tab" data-view="face" aria-selected="false"><i>1</i><span><b>Face Analysis</b><small>Face shape &amp; brows</small></span></button>
+      <button type="button" role="tab" data-view="color" aria-selected="true"><i>2</i><span><b>Color Analysis</b><small>Your season</small></span></button>
+      <button type="button" role="tab" data-view="makeup" aria-selected="false"><i>3</i><span><b>Makeup</b><small>Placement &amp; colors</small></span></button>
+    </nav>
     <div class="chips" id="status-chips">
       <span class="chip" id="chip-engine" title="Analysis engine">engine: loading</span>
       <span class="chip" id="chip-fps">- fps</span>
-      <span class="chip" id="chip-pose">pose -</span>
+      <span class="chip" id="chip-pose" hidden>pose -</span>
     </div>
   </header>
 
-  <main class="layout">
+  <section id="view-color" class="cview" aria-label="Personal color analysis">
+    <div class="cgrid">
+      <div class="cleft">
+        <div class="cstage" id="c-stage">
+          <canvas id="c-photo" width="960" height="720"></canvas>
+          <canvas id="c-drape" width="960" height="720"></canvas>
+          <div class="c-empty" id="c-empty">
+            <h2>Find your season, live</h2>
+            <p>Your live camera stays on while fabric colors are held under your chin, like a professional draping session. You choose what looks best on you.</p>
+            <div class="row">
+              <button class="btn primary" id="c-cam" type="button">Start live camera</button>
+            </div>
+            <div class="row alt">
+              <label class="btn" for="c-file">No camera? Upload a photo</label><input id="c-file" type="file" accept="image/*" hidden>
+              <button class="btn" id="c-demo" type="button">Try the demo face</button>
+            </div>
+            <p id="c-setup-msg" class="muted small">Your browser will ask permission to use your camera. Nothing leaves your device.</p>
+          </div>
+          <div class="c-live" id="c-live" hidden><i></i><span id="c-live-txt">LIVE</span></div>
+          <div class="c-badge" id="c-badge" hidden></div>
+          <div class="c-count" id="c-count" hidden></div>
+          <div class="c-timer" id="c-timerwrap" hidden><span id="c-timer-bar"></span></div>
+        </div>
+        <div class="c-controls" id="c-cam-ctrls" hidden>
+          <span id="c-cam-status" class="muted small"></span>
+          <button class="btn primary" id="c-take" type="button" disabled>Continue</button>
+          <button class="btn" id="c-cancel-cam" type="button">Cancel</button>
+        </div>
+        <div class="c-controls" id="c-controls" hidden>
+          <button class="btn" id="c-prev" type="button" aria-label="Previous color">&larr; Back</button>
+          <button class="btn primary" id="c-play" type="button" aria-pressed="true">Pause</button>
+          <button class="btn" id="c-next" type="button" aria-label="Next color">Next &rarr;</button>
+          <button class="btn small" id="c-restart" type="button">Replay round</button>
+          <label class="inline">Hold <select id="c-hold"><option value="2000">2 s</option><option value="3200" selected>3 s</option><option value="5000">5 s</option><option value="8000">8 s</option></select></label>
+          <label class="inline">View <select id="c-view"><option value="sequential">One at a time</option><option value="split">Side by side</option></select></label>
+        </div>
+        <div class="c-picker" id="c-picker" role="group" aria-label="Choose a color" hidden></div>
+        <div class="c-rounds" id="c-rounds" hidden></div>
+      </div>
+
+      <aside class="panel cright" aria-label="Color analysis">
+        <div id="c-setup">
+          <header class="sec-head"><div class="eyebrow">Step 2 of 3</div><h2>Color Analysis</h2>
+            <p>Discover which colors make your skin look fresh and your eyes bright. This is the heart of OnFleek: your season also tunes your makeup colors.</p></header>
+          <h3>What to do</h3>
+          <ol class="tips num">
+            <li><b>Start your live camera</b> (or upload a photo if you prefer). Allow camera access when your browser asks.</li>
+            <li><b>Face a window</b> and sit back so your shoulders show. Natural daylight is best.</li>
+            <li><b>Watch the colors</b> appear under your face one by one. Pause, go back, or skip any time.</li>
+            <li><b>Vote</b> for the color in each pair that looks better on you. Then see your season.</li>
+          </ol>
+          <h3>For the most reliable result</h3>
+          <ul class="tips">
+            <li>Even daylight, no colored walls or warm lamps behind the screen.</li>
+            <li>No makeup if you can, hair pulled back, and a plain background.</li>
+            <li>Look straight at the camera with a relaxed face.</li>
+          </ul>
+          <p class="muted small">Your video is never changed and never leaves your device.</p>
+        </div>
+        <div id="c-check" hidden>
+          <header class="sec-head"><div class="eyebrow">Step 2 of 3</div><h2>Check your lighting</h2><p>Before we compare colors, we read your skin, hair and eye color from the same spots every time.</p></header>
+          <div id="c-check-body"></div>
+          <div class="row"><button class="btn primary" id="c-start" type="button">Start draping</button><button class="btn" id="c-retake" type="button">Start over</button></div>
+        </div>
+        <div id="c-round" hidden>
+          <h3 id="c-round-title"></h3>
+          <p id="c-look" class="muted"></p>
+          <div class="read" id="c-read" aria-live="polite"></div>
+          <details class="steps"><summary>How are these estimated?</summary>
+            <p class="muted small">Your live video is never altered, so a fabric cannot literally change it, and these bars are not live readings of your skin. They are a model: they compare each color with the undertone, depth, clarity and contrast measured when you started (harmony, brightness, contrast fit: higher is better; dullness, yellow cast, redness, shadows: lower is better). Your own eyes decide the vote.</p>
+          </details>
+          <h3>Which looked better on you?</h3>
+          <div class="votes">
+            <button class="btn" id="c-voteA" type="button" aria-pressed="false"></button>
+            <button class="btn" id="c-voteS" type="button" aria-pressed="false">About the same</button>
+            <button class="btn" id="c-voteB" type="button" aria-pressed="false"></button>
+          </div>
+          <p id="c-vote-note" class="muted small"></p>
+          <div class="row"><button class="btn primary" id="c-next-round" type="button">Next round &rarr;</button><button class="btn" id="c-finish" type="button">See results</button></div>
+        </div>
+        <div id="c-results" hidden></div>
+        <p class="disclaimer">Color analysis is guidance, not science: a single photograph cannot reliably establish your true undertone or season. Lighting, camera processing and makeup all affect it.</p>
+      </aside>
+    </div>
+  </section>
+
+  <main class="layout" id="view-face" hidden>
     <section class="stage-col" aria-label="Camera">
       <div class="stage" id="stage">
         <video id="video" playsinline muted></video>
         <canvas id="backdrop" aria-hidden="true"></canvas>
-        <canvas id="overlay" aria-label="Makeup map overlay"></canvas>
+        <canvas id="overlay" aria-label="Makeup placement overlay"></canvas>
 
         <div class="stage-ctrls" id="stage-ctrls" hidden>
           <button class="icon-btn" id="btn-zoom-out" type="button" aria-label="Zoom out">&minus;</button>
           <span id="zoom-read">100%</span>
           <button class="icon-btn" id="btn-zoom-in" type="button" aria-label="Zoom in">+</button>
           <button class="icon-btn wide" id="btn-full" type="button">Full screen</button>
-          <button class="icon-btn wide" id="btn-drawer" type="button" hidden>Analysis</button>
+          <button class="icon-btn wide" id="btn-drawer" type="button" hidden>Results</button>
         </div>
 
         <div class="welcome" id="welcome">
-          <h2>Find your face shape. Map your makeup.</h2>
-          <p>Start the camera for a live scan, or try the demo face to see how the map follows a turning head.</p>
+          <h2>Meet your face</h2>
+          <p>Turn on your camera for a quick scan. OnFleek finds your face shape and where makeup will look best on you.</p>
           <div class="row">
             <button class="btn primary" id="btn-camera">Start camera</button>
-            <button class="btn" id="btn-demo">Try demo face</button>
+            <button class="btn" id="btn-demo">Try the demo face</button>
           </div>
-          <p class="fine">Your video never leaves your device &mdash; all analysis runs in your browser.</p>
+          <p class="fine">Your video never leaves your device. All analysis runs in your browser.</p>
         </div>
 
         <div class="hud" id="hud" hidden>
@@ -55,140 +148,125 @@
       </div>
 
       <div class="toolbar">
+        <div class="makeup-bar" id="makeup-bar" hidden>
+          <div class="eyebrow">Choose what to see on your face</div>
+          <div class="cats" id="m-cats" role="group" aria-label="Makeup category"></div>
+        </div>
         <div class="row">
           <button class="btn primary" id="btn-rescan" disabled>Rescan</button>
           <button class="btn" id="btn-snap" disabled>Save snapshot</button>
-          <button class="btn" id="btn-stop" disabled>Stop</button>
+          <button class="btn" id="btn-stop" disabled>Stop camera</button>
           <label class="check"><input type="checkbox" id="opt-mirror" checked> Mirror view</label>
         </div>
-        <div class="ltabs" role="tablist" aria-label="Overlay controls">
-          <button role="tab" aria-selected="true" data-ltab="brows" type="button">Brows</button>
-          <button role="tab" aria-selected="false" data-ltab="face" type="button">Face</button>
-          <span class="spacer"></span>
-          <button class="btn small" id="btn-all-on" type="button">Show all</button>
-          <button class="btn small" id="btn-all-off" type="button">Hide all</button>
-        </div>
-        <div class="layers" id="layers-brows" data-group="brows" role="group" aria-label="Brow overlays"></div>
-        <div class="row sliders" data-group="brows">
-          <label>Brow look
-            <select id="opt-brow-style"><option value="mapped">Mapped lines</option><option value="smooth">Smooth outline</option></select>
-          </label>
-        </div>
-        <div class="row sliders" data-group="brows">
-          <label class="check"><input type="checkbox" id="opt-pixel" checked> Match my real brows (colour scan)</label>
-          <span class="muted small" id="pixel-stat"></span>
-        </div>
-        <div class="row sliders fit" data-group="brows">
-          <span class="fit-title">Fit to my brows</span>
-          <label>Move up/down <input type="range" id="fit-y" min="-0.12" max="0.12" step="0.005" value="0"></label>
-          <label>Top line <input type="range" id="fit-top" min="-0.12" max="0.12" step="0.005" value="0"></label>
-          <label>Bottom line <input type="range" id="fit-bot" min="-0.12" max="0.12" step="0.005" value="0"></label>
-          <label>Tail length <input type="range" id="fit-tail" min="-0.15" max="0.15" step="0.005" value="0"></label>
-          <button class="btn small" id="fit-reset" type="button">Reset fit</button>
-        </div>
-        <div class="layers" id="layers-face" data-group="face" role="group" aria-label="Face overlays" hidden></div>
         <div class="row sliders">
           <label>Zoom <input type="range" id="opt-zoom" min="1" max="4" step="0.05" value="1"></label>
           <label class="check"><input type="checkbox" id="opt-follow" checked> Follow face</label>
           <button class="btn small" id="btn-fit" type="button">Reset view</button>
+          <label id="opacity-wrap">Overlay strength <input type="range" id="opt-opacity" min="0.2" max="1" step="0.05" value="0.85"></label>
         </div>
-        <div class="row sliders">
-          <label>Overlay strength <input type="range" id="opt-opacity" min="0.2" max="1" step="0.05" value="0.85"></label>
-          <span id="demo-controls" hidden>
-            <label class="check"><input type="checkbox" id="demo-sweep" checked> Auto head-turn</label>
-            <label>Yaw <input type="range" id="demo-yaw" min="-35" max="35" step="1" value="0"></label>
-            <label>Face
-              <select id="demo-variant">
-                <option>oval</option><option>round</option><option>square</option>
-                <option>heart</option><option>oblong</option><option>diamond</option>
-              </select>
-            </label>
-          </span>
+        <div class="row sliders" id="demo-controls" hidden>
+          <label class="check"><input type="checkbox" id="demo-sweep" checked> Auto head-turn</label>
+          <label>Yaw <input type="range" id="demo-yaw" min="-35" max="35" step="1" value="0"></label>
+          <label>Face
+            <select id="demo-variant">
+              <option>oval</option><option>round</option><option>square</option>
+              <option>heart</option><option>oblong</option><option>diamond</option>
+            </select>
+          </label>
         </div>
       </div>
     </section>
 
     <aside class="panel" aria-label="Results">
-      <nav class="tabs" role="tablist">
-        <button role="tab" aria-selected="true" data-tab="overview">Overview</button>
-        <button role="tab" aria-selected="false" data-tab="eyes">Eyes</button>
-        <button role="tab" aria-selected="false" data-tab="brows">Brows</button>
-        <button role="tab" aria-selected="false" data-tab="makeup">Makeup map</button>
-        <button role="tab" aria-selected="false" data-tab="debug">Details</button>
-      </nav>
-
-      <div class="empty" id="empty">
-        <p>Results appear here once a face is detected.</p>
-      </div>
-
-      <div id="tab-overview" class="tabpane" hidden>
-        <div class="hero">
-          <div class="eyebrow">Your face shape</div>
-          <div class="shape" id="o-shape">-</div>
-          <div class="conf"><span id="o-conf">-</span> <em id="o-state"></em></div>
-          <p id="o-blurb" class="muted"></p>
-        </div>
-        <h3>Shape likelihood</h3>
-        <div id="o-rank" class="bars"></div>
-        <h3>Bone structure</h3>
-        <dl class="kv" id="o-bone"></dl>
-        <h3>Facial symmetry</h3>
-        <div class="gauge"><span id="o-sym-bar"></span></div>
-        <p class="muted" id="o-sym"></p>
-      </div>
-
-      <div id="tab-eyes" class="tabpane" hidden>
-        <dl class="kv" id="e-attrs"></dl>
-        <h3>Eye makeup for you</h3>
-        <ul class="tips" id="e-tips"></ul>
-        <p class="muted small">Violet shows lid colour, outer-V and crease placement; the white triangle is a wing guide.</p>
-      </div>
-
-      <div id="tab-brows" class="tabpane" hidden>
-        <div class="hero small">
-          <div class="eyebrow">Recommended brow</div>
-          <div class="shape" id="b-style">-</div>
-          <p id="b-why" class="muted"></p>
-        </div>
-        <details class="steps">
-          <summary>How to read the map (drawing order)</summary>
-          <ol>
-            <li><b>1st</b> Midline, from forehead to nose tip.</li>
-            <li><b>2nd</b> Level line across both brows at the top of the arch.</li>
-            <li><b>3rd</b> Nostril edge through the outer eye corner: where each tail ends.</li>
-            <li><b>4th</b> Inner V: the gap between the brow heads - keep it clear.</li>
-            <li><b>5th</b> Start lines: each brow begins at the bridge of the nose, just inside the inner eye corner.</li>
-            <li><b>6th</b> Arch lines: the peak sits on this vertical (nostril &rarr; pupil, dashed).</li>
-            <li><b>7th</b> Tail lines: the tail ends level with the bottom of the brow head.</li>
-            <li><b>8th / 9th</b> Upper and lower brow lines: the shape to trace.</li>
-            <li><b>Bottom line</b> (dashed): one level line under both brows - the underside of each brow should sit on it, so the bottoms match.</li>
+      <!-- ============ FACE ANALYSIS ============ -->
+      <div id="pane-face">
+        <header class="sec-head"><div class="eyebrow">Step 1 of 3</div><h2>Face Analysis</h2>
+          <p>We measure the proportions of your face to find your face shape, then suggest the eyebrow shape that suits it best.</p></header>
+        <div class="empty" id="empty">
+          <h3>What to do</h3>
+          <ol class="tips num">
+            <li><b>Start your camera</b> (left). Allow access when your browser asks.</li>
+            <li><b>Look straight ahead</b> and hold still for a few seconds while it scans.</li>
+            <li><b>Read your results</b> here: face shape, why, and your eyebrow recommendation.</li>
           </ol>
-          <p class="muted small">Tick <em>Diamond frame</em> under the video for the extra forehead-apex lines.</p>
-        </details>
-        <h3>Your natural brows</h3><ul class="tips" id="b-asym"></ul>
-        <p class="muted small">The map is mirrored left-to-right, so both brows get an identical shape and sit level with your eye line. Turn on the lines you want under <em>Brows</em> beneath the video; nothing is shown until you do.</p>
-      </div>
+          <p class="muted small">No camera? Use the demo face to see how it works.</p>
+        </div>
+        <div id="face-results" hidden>
+          <div class="card hero">
+            <div class="eyebrow">Your face shape</div>
+            <div class="shape" id="o-shape">-</div>
+            <div class="conf"><span id="o-conf">-</span> <em id="o-state"></em></div>
+            <p id="o-blurb" class="muted"></p>
+          </div>
 
-      <div id="tab-makeup" class="tabpane" hidden>
-        <div id="m-sections"></div>
-      </div>
+          <section class="card">
+            <h3>Why this shape?</h3>
+            <p class="muted small">Face shape comes from several measurements together, never one alone. Here is what we measured on you.</p>
+            <div class="diagram" id="f-diagram"></div>
+            <ul class="why" id="f-why"></ul>
+            <h4>Other shapes we considered</h4>
+            <div id="o-rank" class="bars"></div>
+          </section>
 
-      <div id="tab-debug" class="tabpane" hidden>
-        <h3>Measurements</h3>
-        <dl class="kv mono" id="d-measure"></dl>
-        <h3>Calibration</h3>
-        <p class="muted small">Face-shape thresholds are heuristics on MediaPipe's mesh. If shapes look consistently off for your camera, nudge these offsets.</p>
-        <div class="cal">
-          <label>Length <input type="range" id="cal-len" min="-0.3" max="0.3" step="0.01" value="0"><output id="cal-len-o">0.00</output></label>
-          <label>Forehead <input type="range" id="cal-fore" min="-0.15" max="0.15" step="0.005" value="0"><output id="cal-fore-o">0.00</output></label>
-          <label>Jaw <input type="range" id="cal-jaw" min="-0.15" max="0.15" step="0.005" value="0"><output id="cal-jaw-o">0.00</output></label>
-          <button class="btn small" id="cal-reset">Reset</button>
+          <section class="card brow-card">
+            <h3>Your eyebrow recommendation</h3>
+            <div class="brow-name" id="f-brow-name">-</div>
+            <dl class="rec">
+              <dt>Why it works</dt><dd id="f-brow-why"></dd>
+              <dt>What to avoid or consider</dt><dd id="f-brow-avoid"></dd>
+            </dl>
+            <p class="muted small">This is advice, not a drawing: shape your own brows gently, following your natural hair growth, and see a brow professional if unsure.</p>
+          </section>
+
+          <details class="card more">
+            <summary>More details about your face</summary>
+            <h4>Bone structure</h4>
+            <dl class="kv" id="o-bone"></dl>
+            <h4>Symmetry</h4>
+            <div class="gauge"><span id="o-sym-bar"></span></div>
+            <p class="muted small" id="o-sym"></p>
+            <h4>Measurements</h4>
+            <dl class="kv mono" id="d-measure"></dl>
+            <h4>Fine-tune</h4>
+            <p class="muted small">If shapes look consistently off for your camera, nudge these.</p>
+            <div class="cal">
+              <label>Length <input type="range" id="cal-len" min="-0.3" max="0.3" step="0.01" value="0"><output id="cal-len-o">0.00</output></label>
+              <label>Forehead <input type="range" id="cal-fore" min="-0.15" max="0.15" step="0.005" value="0"><output id="cal-fore-o">0.00</output></label>
+              <label>Jaw <input type="range" id="cal-jaw" min="-0.15" max="0.15" step="0.005" value="0"><output id="cal-jaw-o">0.00</output></label>
+              <button class="btn small" id="cal-reset">Reset</button>
+            </div>
+          </details>
+          <div class="next-step" id="face-next"><button class="btn primary" type="button" data-goto="color">Next: find your colors &rarr;</button></div>
         </div>
       </div>
 
-      <p class="disclaimer">Suggestions are cosmetic guidance from landmark geometry, not medical or professional advice. Lighting, camera angle and expression affect accuracy.</p>
+      <!-- ============ MAKEUP ============ -->
+      <div id="pane-makeup" hidden>
+        <header class="sec-head"><div class="eyebrow">Step 3 of 3</div><h2>Makeup</h2>
+          <p>Where to place each product for your face shape, and which colors suit your season.</p></header>
+        <div class="unlock" id="m-lock" hidden>
+          <b>Unlock your personal makeup colors</b>
+          <p>Placement tips work now. Finish Color Analysis to see blush, eyeshadow, eyeliner and lip colors chosen for your season.</p>
+          <button class="btn primary" type="button" data-goto="color">Go to Color Analysis</button>
+        </div>
+        <div class="unlock info" id="m-nocam" hidden>
+          <b>Start the camera to see placement on your face</b>
+          <p>Face Analysis finds the shape that placement is tuned to. Turn on the camera or the demo face, hold still for the scan, then pick a category.</p>
+          <button class="btn primary" type="button" data-goto="face">Go to Face Analysis</button>
+        </div>
+        <div class="season-banner" id="m-season" hidden></div>
+        <section class="card" id="m-detail"></section>
+        <section class="card" id="m-palette-card" hidden>
+          <h3>Your full makeup palette</h3>
+          <div id="m-palette"></div>
+        </section>
+      </div>
+
+      <p class="disclaimer">Suggestions are cosmetic guidance from facial landmarks, not medical or professional advice. Lighting, camera angle and expression affect accuracy.</p>
     </aside>
   </main>
+
+  <footer class="foot">OnFleek &middot; analysis runs in your browser with a C++ / WebAssembly engine &middot; your images never leave your device</footer>
 
   <script type="module" src="js/app.js"></script>
 </body>

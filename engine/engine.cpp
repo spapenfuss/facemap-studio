@@ -1,13 +1,13 @@
 // =============================================================================
-//  FaceMap Studio - analysis engine
+//  OnFleek - analysis engine
 //  Freestanding C++17 (no STL, no libc, no heap) so it compiles to a tiny
 //  WebAssembly module with plain clang OR with Emscripten.
 //
 //  JS hands in 478 MediaPipe face landmarks per frame; the engine
 //    1. smooths them (One-Euro filter),
 //    2. builds a head-pose-independent "canonical" coordinate frame,
-//    3. measures face shape / bone structure / eyes / brows / symmetry,
-//    4. designs a symmetric brow template + makeup zones in that frame,
+//    3. measures face shape / bone structure / eyes / symmetry,
+//    4. designs makeup zones in that frame,
 //    5. projects everything back to screen space, so overlays follow the head
 //       when it turns, tilts or nods.
 //
@@ -139,9 +139,6 @@ const Proto PROTO[6] = {
 
 struct Profile {
     const char* blurb;
-    const char* browStyle;
-    const char* browWhy;
-    f64 archMult, minLift, maxLift, sharp, archShift, thick, tailLift;
     f64 blA, blB, blRiseDeg, blShift, blDrop;
     f64 ctB; bool ctJaw, ctTemple, ctHair, ctChin;
     bool brFore, brCheek, brJaw, brChin;
@@ -152,8 +149,6 @@ struct Profile {
 const Profile PROF[6] = {
     // ---- Oval
     {"Balanced proportions - length about 1.5x width with a gently tapered jaw. Almost any placement works, so the goal is to enhance rather than correct.",
-     "Soft, rounded arch", "A softly curved brow of natural thickness keeps an oval face balanced; avoid extremes.",
-     1.0, 0.06, 0.12, 0.35, 0.0, 1.0, 0.010,
      0.30, 0.19, 28, 0.14, 0.0,
      0.09, false, false, false, false,
      true, true, true, false,
@@ -164,8 +159,6 @@ const Profile PROF[6] = {
       {"Tap highlighter on the top of the cheekbones, the brow bone, the nose bridge and the cupid's bow.", nullptr, nullptr}}},
     // ---- Round
     {"Soft curves with width and length nearly equal and a rounded jaw. The goal is definition and the illusion of length.",
-     "High, defined arch", "An angled, lifted arch draws the eye up and adds the length and structure a round face lacks.",
-     1.15, 0.075, 0.15, 0.80, 0.01, 0.95, 0.020,
      0.30, 0.17, 38, 0.20, 0.0,
      0.10, true, true, false, true,
      true, true, false, false,
@@ -176,8 +169,6 @@ const Profile PROF[6] = {
       {"Highlight the centre of the forehead, top of the cheekbones, nose bridge and chin centre to add vertical length.", nullptr, nullptr}}},
     // ---- Square
     {"Strong jaw and forehead of similar width with fairly straight sides. The goal is to soften the corners.",
-     "Soft angled arch, medium-full", "A subtle angle with slightly fuller body matches the strength of the jaw while softening it.",
-     1.0, 0.06, 0.12, 0.55, 0.0, 1.12, 0.010,
      0.26, 0.20, 15, 0.04, 0.0,
      0.09, true, true, false, false,
      true, true, true, false,
@@ -188,8 +179,6 @@ const Profile PROF[6] = {
       {"Highlight the cheekbones and the centre of the chin to add soft roundness in the middle of the face.", nullptr, nullptr}}},
     // ---- Heart
     {"Wider forehead and cheekbones tapering to a narrower chin. The goal is to balance the forehead with the lower face.",
-     "Rounded, gently curved", "A rounded brow with a lower, softer arch avoids adding more width and lift at the top of the face.",
-     0.90, 0.05, 0.11, 0.15, 0.0, 0.95, 0.008,
      0.30, 0.20, 10, 0.0, 0.05,
      0.08, false, true, false, true,
      true, true, false, true,
@@ -200,8 +189,6 @@ const Profile PROF[6] = {
       {"Highlight the centre of the chin, the cheekbones and under the eyes; keep the forehead edges matte.", nullptr, nullptr}}},
     // ---- Oblong
     {"Longer than it is wide, with fairly straight cheek lines. The goal is to add width and visually shorten the length.",
-     "Flat, straight brow", "Horizontal brows with only a hint of arch visually shorten the face and add width.",
-     0.55, 0.015, 0.05, 0.0, 0.0, 1.12, 0.0,
      0.36, 0.15, 0, 0.02, 0.0,
      0.07, false, false, true, true,
      true, true, false, true,
@@ -212,8 +199,6 @@ const Profile PROF[6] = {
       {"Highlight the cheekbones and brow bone outward; avoid the centre of the forehead and chin.", nullptr, nullptr}}},
     // ---- Diamond
     {"Widest at the cheekbones, with a narrower forehead and jaw. The goal is to soften the cheekbone width and add balance at the forehead and chin.",
-     "Curved with a soft lift", "A curved brow with a softly lifted arch balances prominent cheekbones without adding width.",
-     1.10, 0.07, 0.14, 0.50, 0.01, 0.95, 0.012,
      0.28, 0.19, 20, 0.10, 0.0,
      0.09, false, true, false, false,
      true, true, true, false,
@@ -226,9 +211,8 @@ const Profile PROF[6] = {
 // -------------------------------------------------------------- anchors ----
 struct SideA {
     Pt eOut, eIn, iris, lidTop, lidBot, alar, mouth, cheekEdge, gonial, jaw, chinSide, temple, foreh, hair;
-    Pt lowerBrow, bHead, bArch, bTail;
-    Pt bu[5], bl[5];                        // natural brow upper/lower edge points, tail -> head
-    f64 irisR, bThickHead, bThickArch, lidGap;
+    Pt lowerBrow, bArch;
+    f64 irisR, bThickArch, lidGap;
 };
 struct Anchors {
     SideA s[2];
@@ -261,8 +245,6 @@ f64  g_lenBias = 0.0, g_foreBias = 0.0, g_jawBias = 0.0;
 f64  g_prob[6]; int g_shape = 0;
 f64  g_cur[NF];
 
-struct Tpl { Pt H, A, T, alar; f64 wH, wA, wB, wT, sharp; Pt up[8], lo[8]; int n; Pt ch[5]; } g_tpl;
-f64 g_fitY = 0, g_fitTop = 0, g_fitBot = 0, g_fitTail = 0;   // user fit sliders (+ = up / longer), in eye-distance units
 
 // ------------------------------------------------------------ frame/pose ---
 Pt upt(int sd, int i) { return {SX[sd] * C[i].x, C[i].y}; }
@@ -356,11 +338,7 @@ void computeAnchors(Anchors& A) {
         a.chinSide = upt(sd, I.chinSide); a.temple = upt(sd, I.temple); a.foreh = upt(sd, I.foreh);
         a.hair = upt(sd, I.hair);
         a.lowerBrow = (upt(sd, I.browLo[1]) + upt(sd, I.browLo[2]) + upt(sd, I.browLo[3])) * (1.0 / 3);
-        for (int k = 0; k < 5; ++k) { a.bu[k] = upt(sd, I.browUp[k]); a.bl[k] = upt(sd, I.browLo[k]); }
-        a.bHead = mid(upt(sd, I.browUp[4]), upt(sd, I.browLo[4]));
         a.bArch = mid(upt(sd, I.browUp[2]), upt(sd, I.browLo[2]));
-        a.bTail = mid(upt(sd, I.browUp[0]), upt(sd, I.browLo[0]));
-        a.bThickHead = absd(upt(sd, I.browLo[4]).y - upt(sd, I.browUp[4]).y);
         a.bThickArch = absd(upt(sd, I.browLo[2]).y - upt(sd, I.browUp[2]).y);
         a.lidGap = a.lidTop.y - a.lowerBrow.y;
     }
@@ -469,129 +447,6 @@ void addEllipse(int kind, int sub, int sd, Pt c, f64 a, f64 b, f64 rot) {
     }
 }
 
-// ----------------------------------------------------------------- brows ---
-// The template is built from the user's OWN brows by REMOVAL ONLY, so little or no filling is needed:
-// for every point along the brow it takes the region that lies inside BOTH the left and the right brow
-// (mirrored), shrunk a hair inward. Hair outside it is what to remove to make the pair match.
-// Only the front (moved to the bridge of the nose) can ask for a little fill.
-void buildTemplate() {
-    const Profile& pr = PROF[g_shape];
-    const SideA &r = g_A.s[0], &l = g_A.s[1];
-    Pt alar = mid(r.alar, l.alar), eIn = mid(r.eIn, l.eIn);
-    f64 uStart = clampd(0.68 * eIn.u, 0.10, eIn.u);       // brows begin at the bridge of the nose
-    const f64 margin = 0.010;                              // keep the template just inside the natural edge
-
-    Pt UP[8], LO[8]; int n = 5;                            // index 0 = tail ... n-1 = head
-    for (int k = 0; k < 5; ++k) {
-        f64 u = 0.5 * (r.bu[k].u + l.bu[k].u + r.bl[k].u + l.bl[k].u) * 0.5;
-        if (k == 0) { f64 m = r.bu[0].u < l.bu[0].u ? r.bu[0].u : l.bu[0].u; f64 m2 = r.bl[0].u < l.bl[0].u ? r.bl[0].u : l.bl[0].u; u = (m < m2 ? m : m2) - 0.01; }   // shorter tail
-        f64 up = (r.bu[k].y > l.bu[k].y ? r.bu[k].y : l.bu[k].y) + margin;    // lower of the two top edges
-        f64 lo = (r.bl[k].y < l.bl[k].y ? r.bl[k].y : l.bl[k].y) - margin;    // higher of the two bottom edges
-        if (lo < up + 0.03) { f64 m = 0.5 * (lo + up); up = m - 0.015; lo = m + 0.015; }
-        UP[k] = {u, up}; LO[k] = {u, lo};
-    }
-    // front: move to the nose-bridge start (small extension), or trim if the natural front is further in
-    if (UP[4].u > uStart + 0.01) {
-        f64 s1 = (UP[4].y - UP[3].y) / (UP[4].u - UP[3].u + 1e-6), s2 = (LO[4].y - LO[3].y) / (LO[4].u - LO[3].u + 1e-6);
-        f64 d = uStart - UP[4].u;
-        UP[5] = {uStart, UP[4].y + clampd(0.5 * s1 * d, -0.03, 0.03)};
-        LO[5] = {uStart, LO[4].y + clampd(0.5 * s2 * d, -0.03, 0.03)};
-        n = 6;
-    } else { UP[4].u = uStart; LO[4].u = uStart; }
-    int hd = n - 1;
-
-    // bottom line: underside of head and tail on one level line, reached by removing (raising) only
-    f64 yb = LO[hd].y < LO[0].y ? LO[hd].y : LO[0].y;
-    if (LO[hd].y - yb > 0.05) yb = LO[hd].y - 0.05;        // never ask for more than ~3 mm at the front
-    for (int q = 0; q < 2; ++q) { int k = q ? hd : 0; if (LO[k].y > yb) LO[k].y = yb; if (UP[k].y > LO[k].y - 0.03) UP[k].y = LO[k].y - 0.03; }
-    // user fit (sliders): shift whole brow / top line / bottom line, lengthen or shorten the tail
-    for (int k = 0; k < n; ++k) { UP[k].y -= g_fitY + g_fitTop; LO[k].y -= g_fitY + g_fitBot; }
-    UP[0].u += g_fitTail; LO[0].u += g_fitTail;
-    for (int k = 0; k < n; ++k) if (LO[k].y < UP[k].y + 0.02) { f64 m = 0.5 * (LO[k].y + UP[k].y); UP[k].y = m - 0.01; LO[k].y = m + 0.01; }
-    int ap = 1; for (int k = 1; k < hd; ++k) if (UP[k].y < UP[ap].y) ap = k;
-
-    // straight "chart" lines: head-top -> apex-top -> tail tip, and head-bottom -> arch-low -> tail tip
-    g_tpl.ch[0] = UP[hd]; g_tpl.ch[1] = UP[ap]; g_tpl.ch[2] = mid(UP[0], LO[0]);
-    g_tpl.ch[3] = {LO[ap].u - 0.02, LO[ap].y}; g_tpl.ch[4] = LO[hd];
-
-    g_tpl.n = n;
-    for (int k = 0; k < n; ++k) { g_tpl.up[k] = UP[k]; g_tpl.lo[k] = LO[k]; }
-    g_tpl.alar = alar;
-    g_tpl.H = mid(UP[hd], LO[hd]); g_tpl.A = mid(UP[ap], LO[ap]); g_tpl.T = mid(UP[0], LO[0]);
-    g_tpl.wH = LO[hd].y - UP[hd].y; g_tpl.wA = LO[ap].y - UP[ap].y; g_tpl.wB = g_tpl.wA; g_tpl.wT = LO[0].y - UP[0].y;
-    g_tpl.sharp = pr.sharp;
-}
-
-const int BNS = 33;
-Pt catmull(const Pt* P, int n, f64 pos) {                 // uniform Catmull-Rom through P[0..n-1], pos in [0, n-1]
-    int i = (int)pos; if (i > n - 2) i = n - 2; if (i < 0) i = 0;
-    f64 t = pos - i;
-    Pt p0 = P[i > 0 ? i - 1 : 0], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2 < n ? i + 2 : n - 1];
-    f64 t2 = t * t, t3 = t2 * t;
-    auto f = [&](f64 a, f64 b, f64 c, f64 d) { return 0.5 * ((2 * b) + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3); };
-    return {f(p0.u, p1.u, p2.u, p3.u), f(p0.y, p1.y, p2.y, p3.y)};
-}
-// Smooth upper/lower edges (head -> tail) through the adjusted natural control points.
-int browEdges(Pt* up, Pt* lo) {
-    int n = g_tpl.n;
-    for (int i = 0; i < BNS; ++i) {
-        f64 pos = (n - 1) * (1.0 - (f64)i / (BNS - 1));       // index n-1 is the head
-        up[i] = catmull(g_tpl.up, n, pos); lo[i] = catmull(g_tpl.lo, n, pos);
-    }
-    return BNS;
-}
-void emitOutline(int kind, int sd) {
-    Pt up[BNS], lo[BNS]; int n = browEdges(up, lo);
-    if (!primBegin(kind, sd, 0, 2 * n)) return;
-    for (int i = 0; i < n; ++i) pushUY(sd, up[i].u, up[i].y);
-    for (int i = n - 1; i >= 0; --i) pushUY(sd, lo[i].u, lo[i].y);
-}
-void emitBrowTarget(int sd) { emitOutline(1, sd); }
-
-// Angular "mapped" brow: head-top -> arch-top -> tail -> arch-low -> head-low (closed)
-void tplCorners(Pt* c) { for (int i = 0; i < 5; ++i) c[i] = g_tpl.ch[i]; }
-void emitBrowAngular(int sd) {
-    Pt c[5]; tplCorners(c);
-    if (!primBegin(6, sd, 0, 5)) return;
-    for (int i = 0; i < 5; ++i) pushUY(sd, c[i].u, c[i].y);
-}
-void line2(int step, int sd, Pt a, Pt b) {
-    if (!primBegin(3, sd, step, 2)) return;
-    pushUY(sd, a.u, a.y); pushUY(sd, b.u, b.y);
-}
-// Classic brow-mapping lines (numbered like a brow-mapping chart).
-//  1 midline, 2 level line at the arch top, 3 nostril->eye-corner->tail, 4 inner V,
-//  5 start vertical (bridge of the nose), 6 arch vertical, 7 tail vertical, 8/9 upper/lower brow lines,
-//  10 nostril->pupil->arch, 11 diamond frame from the forehead apex
-void emitBrowMapSide(int sd) {
-    Pt c[5]; tplCorners(c);
-    const SideA& a = g_A.s[sd];
-    Pt al = g_tpl.alar, H = g_tpl.H, A = g_tpl.A, T = g_tpl.T;
-    f64 yLevel = c[1].y;
-    line2(3, sd, al, al + (T - al) * 1.16);
-    line2(5, sd, {H.u, yLevel}, {H.u, al.y});
-    line2(6, sd, {A.u, yLevel}, {A.u, a.lidBot.y + 0.30});
-    line2(7, sd, {T.u, yLevel}, {T.u, T.y});
-    if (primBegin(3, sd, 8, 3)) { for (int i = 0; i < 3; ++i) pushUY(sd, c[i].u, c[i].y); }
-    if (primBegin(3, sd, 9, 3)) { pushUY(sd, c[2].u, c[2].y); pushUY(sd, c[3].u, c[3].y); pushUY(sd, c[4].u, c[4].y); }
-    line2(10, sd, al, al + (A - al) * 1.12);
-    line2(11, sd, {0, yLevel - 0.52}, {T.u, yLevel});
-    Pt kp[3] = {H, A, T};
-    for (int k = 0; k < 3; ++k) { if (!primBegin(4, sd, k, 1)) return; pushUY(sd, kp[k].u, kp[k].y); }
-}
-void emitBrowMapCenter() {
-    Pt c[5]; tplCorners(c);
-    f64 yLevel = c[1].y, Hu = g_tpl.H.u, Tu = g_tpl.T.u;
-    if (primBegin(3, 2, 1, 2)) { pushUY(2, 0, yLevel - 0.12); pushUY(2, 0, g_A.noseTip.y); }
-    if (primBegin(3, 2, 2, 2)) { pushUY(2, -(Tu + 0.14), yLevel); pushUY(2, Tu + 0.14, yLevel); }
-    if (primBegin(3, 2, 4, 3)) {
-        pushUY(2, -Hu, g_tpl.H.y); pushUY(2, 0, g_tpl.H.y + 0.09); pushUY(2, Hu, g_tpl.H.y);
-    }
-    if (primBegin(3, 2, 12, 2)) { pushUY(2, -Hu, g_tpl.H.y); pushUY(2, Hu, g_tpl.H.y); }
-    // bottom line: one level line along the underside of both brows (head bottom = tail level)
-    if (primBegin(3, 2, 13, 2)) { f64 yb = g_tpl.H.y + 0.5 * g_tpl.wH; pushUY(2, -(Tu + 0.10), yb); pushUY(2, Tu + 0.10, yb); }
-}
-
 // ------------------------------------------------------------------ eyes ---
 Pt quad(Pt p0, Pt pc, Pt p2, f64 t) {
     f64 m = 1 - t;
@@ -692,9 +547,9 @@ void emitZones(const f64* F) {
             addEllipse(13, 0, sd, c, 0.20, 0.05, -0.26);
         }
         if (pr.hlBrow) {
-            f64 yb = g_tpl.A.y + 0.5 * g_tpl.wA + 0.055;
+            f64 yb = a.bArch.y + 0.5 * a.bThickArch + 0.055;
             if (yb > a.lidTop.y - 0.10) yb = a.lidTop.y - 0.10;
-            addEllipse(13, 1, sd, {g_tpl.A.u - 0.03, yb}, 0.15, 0.028, 0);
+            addEllipse(13, 1, sd, {a.bArch.u - 0.03, yb}, 0.15, 0.028, 0);
         }
         // eye makeup
         emitEye(sd, F);
@@ -761,7 +616,6 @@ struct Txt {   // tiny string builder for dynamic sentences
         t[n] = 0; return *this;
     }
 };
-inline int mm(f64 d) { return (int)(absd(d) * IPD_MM + 0.5); }
 
 void eyeTips(Json& j, const f64* F) {
     int sh = eyeShapeC(F[F_OPEN]), tl = eyeTiltC(F[F_TILT]), sp = eyeSpaceC(F[F_SPACE]), ld = eyeLidC(F[F_LIDSP]);
@@ -862,24 +716,6 @@ int buildReport() {
     j.key("tips"); eyeTips(j, F);
     j.endObj();
 
-    j.key("brows"); j.obj();
-    j.kS("style", pr.browStyle); j.kS("why", pr.browWhy);
-    // natural-brow asymmetry
-    j.key("asymmetry"); j.arr();
-    {
-        Txt t; const SideA &r = g_A.s[0], &l = g_A.s[1]; int c = 0;
-        f64 d = r.bArch.y - l.bArch.y;
-        if (absd(d) * IPD_MM >= 1.5) { t.clear(); t.a(d < 0 ? "Right" : "Left").a(" brow arch sits about ").i(mm(d)).a(" mm higher than the ").a(d < 0 ? "left" : "right").a("."); j.s(t.t); ++c; }
-        d = r.bHead.y - l.bHead.y;
-        if (absd(d) * IPD_MM >= 1.5) { t.clear(); t.a(d < 0 ? "Right" : "Left").a(" brow starts about ").i(mm(d)).a(" mm higher at the inner end."); j.s(t.t); ++c; }
-        d = r.bTail.y - l.bTail.y;
-        if (absd(d) * IPD_MM >= 1.5) { t.clear(); t.a(d < 0 ? "Right" : "Left").a(" brow tail ends about ").i(mm(d)).a(" mm higher."); j.s(t.t); ++c; }
-        d = r.bTail.u - l.bTail.u;
-        if (absd(d) * IPD_MM >= 2.0) { t.clear(); t.a(d > 0 ? "Right" : "Left").a(" brow tail extends about ").i(mm(d)).a(" mm further out."); j.s(t.t); ++c; }
-        if (c == 0) j.s("Your natural brows are already closely matched.");
-    }
-    j.endArr();
-    j.endObj();
 
     j.key("symmetry"); j.obj();
     j.kN("score", clampd(100.0 - 100.0 * F[F_ASYM] / 0.12, 0, 100), 0);
@@ -904,7 +740,7 @@ FM_API float* engine_input_ptr()  { return g_in; }
 FM_API float* engine_output_ptr() { return g_out; }
 FM_API char*  engine_json_ptr()   { return g_json; }
 FM_API int    engine_landmark_count() { return NLM; }
-FM_API int    engine_version() { return 102; }
+FM_API int    engine_version() { return 103; }
 
 // Start a new scan (forget learned measurements, keep smoothing state).
 FM_API void engine_reset() {
@@ -916,10 +752,6 @@ FM_API void engine_set_param(int id, double v) {
     else if (id == 1) g_scanTarget = (int)clampd(v, 10, 200);
     else if (id == 2) g_foreBias = clampd(v, -0.2, 0.2);
     else if (id == 3) g_jawBias = clampd(v, -0.2, 0.2);
-    else if (id == 4) g_fitY = clampd(v, -0.3, 0.3);
-    else if (id == 5) g_fitTop = clampd(v, -0.3, 0.3);
-    else if (id == 6) g_fitBot = clampd(v, -0.3, 0.3);
-    else if (id == 7) g_fitTail = clampd(v, -0.3, 0.3);
 }
 
 // Returns number of floats written to the output buffer, or -1 if no face.
@@ -933,7 +765,7 @@ FM_API int engine_process(int n, double w, double h, double tMs) {
     if (!buildFrame()) { g_valid = false; g_outN = 0; return -1; }
 
     g_blink = (0.5 * (eyeOpen(0) + eyeOpen(1))) < 0.12;
-    blendAnchors(absd(g_yaw) < 30 && !g_blink ? 0.12 : 0.0);
+    blendAnchors(!g_locked && absd(g_yaw) < 30 && !g_blink ? 0.12 : 0.0);   // after the scan locks, the measurements are frozen
 
     computeFeatures(g_cur);
     if (!g_locked && (g_frontal || g_featN == 0) && !g_blink) {
@@ -947,9 +779,6 @@ FM_API int engine_process(int n, double w, double h, double tMs) {
 
     g_valid = true;
     g_outN = 0;
-    buildTemplate();
-    for (int sd = 0; sd < 2; ++sd) { emitBrowTarget(sd); emitBrowAngular(sd); emitBrowMapSide(sd); }
-    emitBrowMapCenter();
     emitZones(F);
     return g_outN;
 }

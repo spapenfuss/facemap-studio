@@ -2,7 +2,6 @@
 // Works in browsers and in Node (pass the wasm bytes instead of a URL).
 
 export const KIND = {
-  BROW_TARGET: 1, BROW_NATURAL: 2, BROW_MAP: 3, BROW_GUIDE: 3, BROW_POINT: 4, BROW_ANGULAR: 6,
   CONTOUR: 10, BRONZER: 11, BLUSH: 12, HIGHLIGHT: 13,
   EYE_LID: 14, EYE_OUTERV: 15, EYE_CREASE: 16, EYE_INNER: 17, EYE_WING: 18,
 };
@@ -68,7 +67,7 @@ export class Engine {
 export async function loadEngine(source = 'wasm/engine.wasm') {
   let bytes = source;
   if (typeof source === 'string' || source instanceof URL) {
-    const res = await fetch(source);
+    const res = await fetch(`${source}?v=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Could not load ${source} (${res.status}). Run the build or use the prebuilt web/wasm/engine.wasm.`);
     bytes = await res.arrayBuffer();
   }
